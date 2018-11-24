@@ -2,7 +2,6 @@
 #include <iostream>
 #include "crud.h"
 using namespace std;
-extern FILE* yyin;
 int yylex();
 int yyerror(string s);
 %}
@@ -11,7 +10,7 @@ int yyerror(string s);
 %defines "parser.h"
 
 
-%token create table_t int_t varchar def not_null fk ref on_del on_up set_nul set_def cascade pk select from and_t or_t insert into values delete_t max where as in
+%token create table_t int_t varchar def not_null fk ref on_del on_up set_nul set_def cascade pk select_t from and_t or_t insert into values delete_t max where as in
 
 %left or_t
 %left and_t
@@ -28,11 +27,21 @@ int yyerror(string s);
 
 %%
 
-PROGRAM : QUERIES {$$ = $1; cout<<"VALID!"<<endl; cout<<$$->type<<endl; garbageCollector();}
+PROGRAM : QUERIES {root = $1; cout<<"Queries parsed successfully!"<<endl;}
         ;
 
-QUERIES : QUERY ';'         {$$->childNodes.push_back($1);}
-        | QUERY ';' QUERIES {$3->childNodes.push_front($1); $1 = $3;}
+QUERIES : QUERY ';'         
+            {
+                $$ = new ast_node();
+                $$->type = QUERIES;
+                $$->childNodes.push_back($1);
+                add_to_cleanup(AST_NODE, (void**) &$$);
+            }
+        | QUERY ';' QUERIES 
+            {
+                $3->childNodes.push_front($1); 
+                $1 = $3;
+            }
         ;
 
 QUERY : CREATE_TABLE {$$ = $1;}
@@ -84,11 +93,11 @@ LITERALS : literal
             }
        ;
 */
-SELECT : select '*' from id where CONDITION
-       | select IDS from id where CONDITION
-       | select max '(' id ')' from id where CONDITION
-       | select '*' from id
-       | select IDS from id
+SELECT : select_t '*' from id where CONDITION
+       | select_t IDS from id where CONDITION
+       | select_t max '(' id ')' from id where CONDITION
+       | select_t '*' from id
+       | select_t IDS from id
        ;
 
 CONDITION : CONDITION and_t CONDITION
@@ -299,12 +308,6 @@ FK_CONSTRAINT : on_del cascade
               ;
 
 %%
-
-int main(int argc, char* argv[]){
-    if(argc == 2) yyin = fopen(argv[1],"r"); 
-    yyparse();
-    return 0;
-}
 
 int yyerror(string s){
     cout<<"ERROR"<<endl;

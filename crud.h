@@ -69,6 +69,7 @@ typedef struct{
 
 extern vector <heapObject*> HeapObjects;
 extern database Database;
+extern ast_node* root;
 
 //*************** FUNCTIONS ****************
 

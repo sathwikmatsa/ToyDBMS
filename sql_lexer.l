@@ -23,7 +23,7 @@ DELETE|delete               {return delete_t;}
 AS|as                       {return as;}
 WHERE|where                 {return where;}
 IN|in                       {return in;}
-SELECT|select               {return select;}
+SELECT|select               {return select_t;}
 FROM|from                   {return from;}
 AND|and                     {return and_t;}
 OR|or                       {return or_t;}
