@@ -31,12 +31,14 @@ typedef struct{
 typedef vector<attr*> attrList;
 typedef vector<string> record;
 typedef vector<record> recordList;
+typedef vector<string> columnList;
 
 typedef struct{
     string name;
     int nAttrs;
     attrList attributes;
     recordList records;
+    columnList primaryKeys;
 } table;
 
 typedef vector<table*> database;
@@ -70,6 +72,7 @@ typedef struct{
 extern vector <heapObject*> HeapObjects;
 extern database Database;
 extern ast_node* root;
+extern map<int, string> type_of;
 
 //*************** FUNCTIONS ****************
 
@@ -79,6 +82,9 @@ bool create_table_in_database(string tableName);
 bool add_attribute(string attrName, bool isString, string tableName);
 void add_constraint(int attrID, string attrName, string tableName, void* data);
 void add_record(record r, string tableName);
+void add_primaryKeyField(string attrName, string tableName);
+table* get_table(string tableName);
+int get_attr_index(string attrName, string tableName);
 void print_database();
 void print_table(table* Table);
 void print_attributes(table* Table);

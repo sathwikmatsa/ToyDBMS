@@ -48,7 +48,7 @@ DEFAULT|default             {return def;}
                                 yylval.val = s; return literal;
                             }
 {STRING}                    {
-                                string* s = new string(yytext); string* r = new string(s->substr(1, s->length() - 1)); 
+                                string* s = new string(yytext); string* r = new string(s->substr(1, s->length() - 2)); 
                                 add_to_cleanup(STRING, (void**) &s); add_to_cleanup(STRING, (void**) &r); 
                                 yylval.val = r; return literal;
                             }

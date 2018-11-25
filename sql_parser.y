@@ -40,7 +40,7 @@ QUERIES : QUERY ';'
         | QUERY ';' QUERIES 
             {
                 $3->childNodes.push_front($1); 
-                $1 = $3;
+                $$ = $3;
             }
         ;
 

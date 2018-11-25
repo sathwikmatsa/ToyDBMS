@@ -1,5 +1,6 @@
 #include <iostream>
 #include <cstddef>
+#include <map>
 #include "crud.h"
 
 using namespace std;
@@ -52,12 +53,17 @@ bool create_table_in_database(string tableName){
 }
 
 bool add_attribute(string attrName, bool isString, string tableName){
-    table* Table;
+    table* Table = NULL;
     for(size_t i = 0; i<Database.size(); i++){
         if(Database[i]->name == tableName){
             Table = Database[i];
             break;
         }
+    }
+
+    if(Table == NULL) {
+        cout<<"Error: Table-"<<tableName<<" not found!"<<endl;
+        return false;
     }
 
     attr* newAttr = new attr();
@@ -93,12 +99,12 @@ void add_constraint(int attrID, string attrName, string tableName, void* data){
 		case 0 : Attr->FK_table = *((string*) data); break;
 		case 1 : Attr->FK_attr = *((string*) data); break;
 		case 2 : Attr->onDeleteFK = *((int*) data); break;
-		case 3 : Attr->cascadeOnUpdateFK = *((bool*) data); break;
-		case 4 : Attr->hasDefault = *((bool*) data); break;
+		case 3 : Attr->cascadeOnUpdateFK = true; break;
+		case 4 : Attr->hasDefault = true; break;
 		case 5 : Attr->defaultVal = *((string*) data); break;
-		case 6 : Attr->notNULL = *((bool*) data); break; 
-		case 7 : Attr->isPK = *((bool*) data); break;
-		case 8 : Attr->isFK = *((bool*) data); break;
+		case 6 : Attr->notNULL = true; break; 
+		case 7 : Attr->isPK = true; break;
+		case 8 : Attr->isFK = true; break;
 		default : return;
 	}
 
@@ -121,6 +127,68 @@ void add_record(record r, string tableName){
     }
 
     Table->records.push_back(r);
+}
+
+void add_primaryKeyField(string attrName, string tableName){
+    table* Table;
+    for(size_t i = 0; i<Database.size(); i++){
+        if(Database[i]->name == tableName){
+            Table = Database[i];
+            break;
+        }
+    }
+
+    bool attrExists = false;
+    for(int i = 0; i<Table->nAttrs; i++){
+        if(Table->attributes[i]->name == attrName){
+            attrExists = true;
+            break;
+        }
+    }
+
+    if(!attrExists){
+        cout<<"ERROR: Attribute-"<<attrName<<" not found!"<<endl;
+        return;
+    }
+    
+    Table->primaryKeys.push_back(attrName);
+
+}
+
+table* get_table(string tableName){
+    table* Table = NULL;
+    for(size_t i = 0; i<Database.size(); i++){
+        if(Database[i]->name == tableName){
+            Table = Database[i];
+            break;
+        }
+    }
+    return Table;
+}
+
+int get_attr_index(string attrName, string tableName){
+    table* Table;
+    for(size_t i = 0; i<Database.size(); i++){
+        if(Database[i]->name == tableName){
+            Table = Database[i];
+            break;
+        }
+    }
+
+    bool attrExists = false;
+    int index = 0;
+    for(int i = 0; i<Table->nAttrs; i++){
+        if(Table->attributes[i]->name == attrName){
+            attrExists = true;
+            return index;
+        }
+        index++;
+    }
+
+    if(!attrExists){
+        cout<<"ERROR: Attribute-"<<attrName<<" not found!"<<endl;
+        return -1;
+    }
 }
 
 void print_database(){
@@ -151,3 +219,12 @@ void print_records(table* Table){
         cout<<endl;
     }
 }
+
+
+map<int, string> type_of = {{0, "PROGRAM"}, {1, "QUERIES"},
+    {2, "QUERY"}, {3, "CREATE_TABLE"}, {4, "SELECT"}, {5, "INSERT"},
+    {6, "DELETE"}, {7, "IDS"}, {8, "LITERALS"}, {9, "CONDITION"},
+    {10, "NQ_OR_LITERAL"}, {11, "CT_ARGS"}, {12, "CT_ARG"},
+    {13, "ATRR_DEF"}, {14, "FK_PK_DEF"}, {15, "TYPE"},
+    {16, "CONSTRAINTS"}, {17, "CONSTRAINT"}, {18, "FK_CONSTRAINTS"}, 
+    {19, "FK_CONSTRAINT"}};
