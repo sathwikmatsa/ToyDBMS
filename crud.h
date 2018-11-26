@@ -60,7 +60,6 @@ typedef struct ast_node{
     int op, op_val;
     map<string, string> rename;
     int cond_operand;
-    string postfix_exp;
     bool max_op;
 } ast_node;
 
