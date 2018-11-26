@@ -131,10 +131,23 @@ void processIQ(ast_node* ins){
     return;
 }
 
+void processCondition(table* Table, ast_node* condition, bool discard_cond){
+    return; 
+}
+
+void processDQ(ast_node* query){
+    //set table_n
+    table_n = query->tableName;
+    table* Table = get_table(table_n);
+
+    processCondition(Table, query->childNodes[0], false);
+}
+
 void processQuery(ast_node* query){
     switch(query->type){
         case CREATE_TABLE: processCTQ(query); break;
         case INSERT: processIQ(query); break;
+        case DELETE: processDQ(query); break;
         default: break;
     }
 }

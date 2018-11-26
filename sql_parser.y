@@ -21,8 +21,7 @@ int yyerror(string s);
 }
 
 %token<val> literal id
-/* TODO: add select, delete*/ 
-%type<ast_node_ptr> PROGRAM QUERIES QUERY CREATE_TABLE INSERT IDS LITERALS CT_ARGS CT_ARG ATTR_DEF FK_PK_DEF TYPE CONSTRAINTS CONSTRAINT FK_CONSTRAINTS FK_CONSTRAINT  
+%type<ast_node_ptr> PROGRAM QUERIES QUERY CREATE_TABLE INSERT DELETE IDS LITERALS CT_ARGS CT_ARG ATTR_DEF FK_PK_DEF TYPE CONSTRAINTS CONSTRAINT FK_CONSTRAINTS FK_CONSTRAINT SELECT CONDITION NQ_OR_LITERAL  
 
 
 %%
@@ -45,9 +44,9 @@ QUERIES : QUERY ';'
         ;
 
 QUERY : CREATE_TABLE {$$ = $1;}
-      //| SELECT       {$$ = $1;}
+      | SELECT       {$$ = $1;}
       | INSERT       {$$ = $1;}
-      //| DELETE       {$$ = $1;}
+      | DELETE       {$$ = $1;}
       ;
 
 INSERT : insert into id '(' IDS ')' values '(' LITERALS ')'
@@ -83,7 +82,7 @@ LITERALS : literal
             }
          ;
 
-/*DELETE : delete_t from id where CONDITION
+DELETE : delete_t from id where CONDITION
             {
                 $$ = new ast_node();
                 $$->type = DELETE;
@@ -92,27 +91,158 @@ LITERALS : literal
                 add_to_cleanup(AST_NODE, (void**) &$$);
             }
        ;
-*/
+
 SELECT : select_t '*' from id where CONDITION
+            {
+                $$ = new ast_node();
+                $$->type = SELECT;
+                $$->tableName = (*$4);
+                $$->childNodes.push_back($6);
+                add_to_cleanup(AST_NODE, (void**) &$$);
+            }
        | select_t IDS from id where CONDITION
+            {
+                $$ = new ast_node();
+                $$->type = SELECT;
+                $$->tableName = (*$4);
+                $$->childNodes.push_back($2);
+                $$->childNodes.push_back($6);
+                add_to_cleanup(AST_NODE, (void**) &$$);
+            }
        | select_t max '(' id ')' from id where CONDITION
+            {
+                $$ = new ast_node();
+                $$->type = SELECT;
+                $$->attrName = (*$4);
+                $$->tableName = (*$7);
+                $$->max_op = true;
+                $$->childNodes.push_back($9);
+                add_to_cleanup(AST_NODE, (void**) &$$);
+            }
        | select_t '*' from id
+            {
+                $$ = new ast_node();
+                $$->type = SELECT;
+                $$->tableName = (*$4);
+                add_to_cleanup(AST_NODE, (void**) &$$);
+            }
        | select_t IDS from id
+            {
+                $$ = new ast_node();
+                $$->type = SELECT;
+                $$->tableName = (*$4);
+                $$->childNodes.push_back($2);
+                add_to_cleanup(AST_NODE, (void**) &$$);
+            }
        ;
 
 CONDITION : CONDITION and_t CONDITION
+                {
+                    $$ = new ast_node();
+                    $$->type = CONDITION;
+                    $$->postfix_exp = "$0 $1 #AND";
+                    $$->childNodes.push_back($1);
+                    $$->childNodes.push_back($3);
+                    add_to_cleanup(AST_NODE, (void**) &$$);
+                }
           | CONDITION or_t CONDITION
+                {
+                    $$ = new ast_node();
+                    $$->type = CONDITION;
+                    $$->postfix_exp = "$0 $1 #OR";
+                    $$->childNodes.push_back($1);
+                    $$->childNodes.push_back($3);
+                    add_to_cleanup(AST_NODE, (void**) &$$);
+                }
           | id in NQ_OR_LITERAL
+                {
+                    $$ = new ast_node();
+                    $$->type = CONDITION;
+                    $$->postfix_exp = (*$1) + " $0 in";
+                    $$->attrName = (*$1);
+                    $$->childNodes.push_back($3);
+                    add_to_cleanup(AST_NODE, (void**) &$$);
+                }
           | id '=' NQ_OR_LITERAL
+                {
+                    $$ = new ast_node();
+                    $$->type = CONDITION;
+                    $$->postfix_exp = (*$1) + " $0 =";
+                    $$->attrName = (*$1);
+                    $$->childNodes.push_back($3);
+                    add_to_cleanup(AST_NODE, (void**) &$$);
+                }
           | id '!' '=' NQ_OR_LITERAL
+                {
+                    $$ = new ast_node();
+                    $$->type = CONDITION;
+                    $$->postfix_exp = (*$1) + " $0 !=";
+                    $$->attrName = (*$1);
+                    $$->childNodes.push_back($4);
+                    add_to_cleanup(AST_NODE, (void**) &$$);
+                }
           | id '<' NQ_OR_LITERAL
+                {
+                    $$ = new ast_node();
+                    $$->type = CONDITION;
+                    $$->postfix_exp = (*$1) + " $0 <";
+                    $$->attrName = (*$1);
+                    $$->childNodes.push_back($3);
+                    add_to_cleanup(AST_NODE, (void**) &$$);
+                }
           | id '>' NQ_OR_LITERAL
+                {
+                    $$ = new ast_node();
+                    $$->type = CONDITION;
+                    $$->postfix_exp = (*$1) + " $0 >";
+                    $$->attrName = (*$1);
+                    $$->childNodes.push_back($3);
+                    add_to_cleanup(AST_NODE, (void**) &$$);
+                }
           | id '<' '=' NQ_OR_LITERAL
+                {
+                    $$ = new ast_node();
+                    $$->type = CONDITION;
+                    $$->postfix_exp = (*$1) + " $0 <=";
+                    $$->attrName = (*$1);
+                    $$->childNodes.push_back($4);
+                    add_to_cleanup(AST_NODE, (void**) &$$);
+                }
           | id '>' '=' NQ_OR_LITERAL
+                {
+                    $$ = new ast_node();
+                    $$->type = CONDITION;
+                    $$->postfix_exp = (*$1) + " $0 >=";
+                    $$->attrName = (*$1);
+                    $$->childNodes.push_back($4);
+                    add_to_cleanup(AST_NODE, (void**) &$$);
+                }
           ;
 
-NQ_OR_LITERAL : literal
-              | '(' SELECT ')'
+NQ_OR_LITERAL : literal         /*0*/
+                    {
+                        $$ = new ast_node();
+                        $$->type = NQ_OR_LITERAL;
+                        $$->cond_operand = 0;
+                        $$->literal_v = (*$1);
+                        add_to_cleanup(AST_NODE, (void**) &$$);
+                    }
+              | '(' SELECT ')'  /*1*/
+                    {
+                        $$ = new ast_node();
+                        $$->type = NQ_OR_LITERAL;
+                        $$->cond_operand = 1;
+                        $$->childNodes.push_back($2);
+                        add_to_cleanup(AST_NODE, (void**) &$$);
+                    }
+              | '(' LITERALS ')'/*2*/
+                    {
+                        $$ = new ast_node();
+                        $$->type = NQ_OR_LITERAL;
+                        $$->cond_operand = 2;
+                        $$->childNodes.push_back($2);
+                        add_to_cleanup(AST_NODE, (void**) &$$);
+                    }
               ;
 
 
