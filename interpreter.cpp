@@ -1,5 +1,7 @@
 #include <iostream>
+#include <string>
 #include <map>
+#include <deque>
 #include <cassert>
 #include "crud.h"
 #include "parser.h"
@@ -13,6 +15,8 @@ ast_node* root = NULL;
 
 global_variable string table_n;         //file scoped
 global_variable string attribute_n;
+global_variable record record_c;
+global_variable int record_index;
 
 void processFKPKDef(ast_node* fkpkDef){
     // primary key
@@ -131,8 +135,106 @@ void processIQ(ast_node* ins){
     return;
 }
 
-void processCondition(table* Table, ast_node* condition, bool discard_cond){
-    return; 
+void processSelect();
+void sanitize();
+
+bool processCondition(ast_node* condition){
+    if(condition->childNodes.size() == 1){
+        int attr_index = get_attr_index(condition->attrName, table_n);
+        assert(attr_index >= 0);
+        bool isString = get_table(table_n)->attributes[attr_index]->isString;
+        //set attribute_n
+        attribute_n = condition->attrName;
+        deque<string> list_values;
+        if(condition->cond_operand == 1){
+            //values = sanitize(processSelect());
+        } else {
+            list_values = condition->childNodes[0]->list_val;
+        }
+        int len = list_values.size();
+        switch(condition->op){
+            case 2:
+            case 3: {
+                for(int i = 0; i < len; i++){
+                    if(isString){
+                        if((record_c[attr_index]) == (list_values[i])) 
+                            return true; 
+                    } else {
+                        if(stoi(record_c[attr_index]) == stoi(list_values[i]))
+                            return true;
+                    }
+                }
+            }break;
+            case 4: {
+                for(int i = 0; i < len; i++){
+                    if(isString){
+                        if((record_c[attr_index]) != (list_values[i])) 
+                            return true; 
+                    } else {
+                        if(stoi(record_c[attr_index]) != stoi(list_values[i]))
+                            return true;
+                    }
+                }
+            }break;
+            case 5: {
+                for(int i = 0; i < len; i++){
+                    if(isString){
+                        if((record_c[attr_index]) >= (list_values[i])) 
+                            return false;
+                    } else {
+                        if(stoi(record_c[attr_index]) >= stoi(list_values[i]))
+                            return false;
+                    }
+                }
+                return true;
+            }break;
+            case 6: {
+                for(int i = 0; i < len; i++){
+                    if(isString){
+                        if((record_c[attr_index]) <= (list_values[i])) 
+                            return false;
+                    } else {
+                        if(stoi(record_c[attr_index]) <= stoi(list_values[i]))
+                            return false;
+                    }
+                }
+                return true;
+            }break;
+            case 7: {
+                for(int i = 0; i < len; i++){
+                    if(isString){
+                        if((record_c[attr_index]) > (list_values[i])) 
+                            return false;
+                    } else {
+                        if(stoi(record_c[attr_index]) > stoi(list_values[i]))
+                            return false;
+                    }
+                }
+                return true;
+            }break;
+            case 8: {
+                for(int i = 0; i < len; i++){
+                    if(isString){
+                        if((record_c[attr_index]) < (list_values[i])) 
+                            return false;
+                    } else {
+                        if(stoi(record_c[attr_index]) < stoi(list_values[i]))
+                            return false;
+                    }
+                }
+                return true;
+            }break;
+            default: break;
+        }
+    } else {
+        if(condition->op == 0) 
+            return processCondition(condition->childNodes[0]) 
+                && processCondition(condition->childNodes[1]);
+        else
+            return processCondition(condition->childNodes[0]) 
+                || processCondition(condition->childNodes[1]);
+    }
+    return false; 
 }
 
 void processDQ(ast_node* query){
@@ -140,7 +242,29 @@ void processDQ(ast_node* query){
     table_n = query->tableName;
     table* Table = get_table(table_n);
 
-    processCondition(Table, query->childNodes[0], false);
+    int nRecords = Table->records.size();
+
+    //iterate over and set record_c & record_index
+    record_index = 0;
+    while(record_index < nRecords){
+        record_c = Table->records[record_index];
+        if(processCondition(query->childNodes[0])){
+            Table->records.erase(Table->records.begin() + record_index);
+            nRecords--;
+            record_index--;
+        }
+        record_index++;
+    }
+}
+
+table* processSelect(ast_node* sel){
+    //TODO
+    return NULL;
+}
+
+void processSQ(ast_node* query){
+    table* Table = processSelect(query);
+    print_table(Table);
 }
 
 void processQuery(ast_node* query){
@@ -148,6 +272,7 @@ void processQuery(ast_node* query){
         case CREATE_TABLE: processCTQ(query); break;
         case INSERT: processIQ(query); break;
         case DELETE: processDQ(query); break;
+        //case SELECT: processSQ(query); break;
         default: break;
     }
 }

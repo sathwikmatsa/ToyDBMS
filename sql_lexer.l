@@ -8,8 +8,8 @@ bool DEBUG = false;
 %}
 
 INTEGER [0-9]+
-STRING ['].*[']|["].*["]
 IDENTIFIER [A-Za-z]+
+STRING \"(\\.|[^\\"])*\"
 
 %option noyywrap
 %option outfile="lexer.cc"

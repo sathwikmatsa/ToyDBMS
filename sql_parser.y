@@ -140,7 +140,7 @@ CONDITION : CONDITION and_t CONDITION
                 {
                     $$ = new ast_node();
                     $$->type = CONDITION;
-                    $$->postfix_exp = "$0 $1 #AND";
+                    $$->op = 0;
                     $$->childNodes.push_back($1);
                     $$->childNodes.push_back($3);
                     add_to_cleanup(AST_NODE, (void**) &$$);
@@ -149,7 +149,7 @@ CONDITION : CONDITION and_t CONDITION
                 {
                     $$ = new ast_node();
                     $$->type = CONDITION;
-                    $$->postfix_exp = "$0 $1 #OR";
+                    $$->op = 1;
                     $$->childNodes.push_back($1);
                     $$->childNodes.push_back($3);
                     add_to_cleanup(AST_NODE, (void**) &$$);
@@ -158,7 +158,7 @@ CONDITION : CONDITION and_t CONDITION
                 {
                     $$ = new ast_node();
                     $$->type = CONDITION;
-                    $$->postfix_exp = (*$1) + " $0 in";
+                    $$->op = 2;
                     $$->attrName = (*$1);
                     $$->childNodes.push_back($3);
                     add_to_cleanup(AST_NODE, (void**) &$$);
@@ -167,7 +167,7 @@ CONDITION : CONDITION and_t CONDITION
                 {
                     $$ = new ast_node();
                     $$->type = CONDITION;
-                    $$->postfix_exp = (*$1) + " $0 =";
+                    $$->op = 3;
                     $$->attrName = (*$1);
                     $$->childNodes.push_back($3);
                     add_to_cleanup(AST_NODE, (void**) &$$);
@@ -176,7 +176,7 @@ CONDITION : CONDITION and_t CONDITION
                 {
                     $$ = new ast_node();
                     $$->type = CONDITION;
-                    $$->postfix_exp = (*$1) + " $0 !=";
+                    $$->op = 4;
                     $$->attrName = (*$1);
                     $$->childNodes.push_back($4);
                     add_to_cleanup(AST_NODE, (void**) &$$);
@@ -185,7 +185,7 @@ CONDITION : CONDITION and_t CONDITION
                 {
                     $$ = new ast_node();
                     $$->type = CONDITION;
-                    $$->postfix_exp = (*$1) + " $0 <";
+                    $$->op = 5;
                     $$->attrName = (*$1);
                     $$->childNodes.push_back($3);
                     add_to_cleanup(AST_NODE, (void**) &$$);
@@ -194,7 +194,7 @@ CONDITION : CONDITION and_t CONDITION
                 {
                     $$ = new ast_node();
                     $$->type = CONDITION;
-                    $$->postfix_exp = (*$1) + " $0 >";
+                    $$->op = 6;
                     $$->attrName = (*$1);
                     $$->childNodes.push_back($3);
                     add_to_cleanup(AST_NODE, (void**) &$$);
@@ -203,7 +203,7 @@ CONDITION : CONDITION and_t CONDITION
                 {
                     $$ = new ast_node();
                     $$->type = CONDITION;
-                    $$->postfix_exp = (*$1) + " $0 <=";
+                    $$->op = 7;
                     $$->attrName = (*$1);
                     $$->childNodes.push_back($4);
                     add_to_cleanup(AST_NODE, (void**) &$$);
@@ -212,7 +212,7 @@ CONDITION : CONDITION and_t CONDITION
                 {
                     $$ = new ast_node();
                     $$->type = CONDITION;
-                    $$->postfix_exp = (*$1) + " $0 >=";
+                    $$->op = 8;
                     $$->attrName = (*$1);
                     $$->childNodes.push_back($4);
                     add_to_cleanup(AST_NODE, (void**) &$$);
@@ -224,7 +224,7 @@ NQ_OR_LITERAL : literal         /*0*/
                         $$ = new ast_node();
                         $$->type = NQ_OR_LITERAL;
                         $$->cond_operand = 0;
-                        $$->literal_v = (*$1);
+                        $$->list_val.push_back((*$1));
                         add_to_cleanup(AST_NODE, (void**) &$$);
                     }
               | '(' SELECT ')'  /*1*/
@@ -240,7 +240,7 @@ NQ_OR_LITERAL : literal         /*0*/
                         $$ = new ast_node();
                         $$->type = NQ_OR_LITERAL;
                         $$->cond_operand = 2;
-                        $$->childNodes.push_back($2);
+                        $$->list_val = $2->list_val;
                         add_to_cleanup(AST_NODE, (void**) &$$);
                     }
               ;

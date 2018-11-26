@@ -2,8 +2,8 @@ CREATE TABLE Person(ID INT NOT NULL,
                     Name VARCHAR(255),
                     PRIMARY KEY(ID));
 
-insert into Person values(1, "Sathwik");
-insert into Person values(2, "Johnny");
+insert into Person values(1, "Rick");
+insert into Person values(2, "Shelby");
 insert into Person values(3, "MrBulldops");
-insert into Person (ID, Name) values(0, "MEGA POWER!");
-insert into Person (Name) values ("Address ledhu!");
+
+delete from Person where ID < 3;
