@@ -39,6 +39,7 @@ supported queries:
 - SELECT
 - INSERT
 - DELETE
+- MAX
 #### compatible with MySQL syntax
 Note: this is a single database system
 
