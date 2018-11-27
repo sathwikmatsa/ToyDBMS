@@ -77,6 +77,7 @@ TYPE : int_t | varchar '(' literal ')'
      * adds attributes to the table by evaluating the childNode (CT_ARGS) by retreiving childNodes of CT_ARGS and processing each node based on it's type. In our case it's ATTR_DEF, so it calls `processAttrDef` which in turn calls `add_attribute` with appropriate parameters.
      
 ## TODO
-- [ ] implement checks for attribute constraints and integrity constraints
+- [ ] Verify attribute constraints and integrity constraints
 - [ ] handle NULL values
+- [ ] Alias
 - [ ] code refactoring
