@@ -50,3 +50,32 @@ Note: this is a single database system
 `interpreter` (interpreter.cpp) : evaluates nodes in the AST to realize the output
 
 `crud.cpp` contains the implementation of functions for dealing with storing/manipulation of data which are used by the interpreter.
+
+### Code Walkthrough Example
+consider the following query: `CREATE TABLE PERSON(ID INT, NAME VARCHAR(15));`
+
+**_lexer_** produces the following tokens: 
+```
+[create] [table_t] [id] [(] [id] [int_t] [,] [id] [varchar] [(] [literal] [)] [)] [;]
+```
+**_parser_** recognizes it by the following [rules](https://github.com/sathwikmatsa/ToyDBMS/blob/master/sql_parser.y#L262-#L323):
+```
+CREATE_TABLE : create table_t id '(' CT_ARGS ')'
+CT_ARGS : CT_ARG | CT_ARG ',' CT_ARGS
+CT_ARG : ATTR_DEF
+ATTR_DEF : id TYPE
+TYPE : int_t | varchar '(' literal ')'
+```
+* each non terminal token (in caps) can use a `ast_node` pointer to store required information like table name, arguments etc.
+* ast_node pointers of non terminals on RHS are stored in `childNodes` member of ast_node of the corresponding LHS non terminal.
+
+**_interpreter_** evaluates the query by calling `processQuery`.
+* processQuery : identifies NODE type -> calls `processCTQ`
+* `processCTQ` : 
+     * creates table in database by calling `create_table_in_database`
+     * adds attributes to the table by evaluating the childNode (CT_ARGS) by retreiving childNodes of CT_ARGS and processing each node based on it's type. In our case it's ATTR_DEF, so it calls `processAttrDef` which in turn calls `add_attribute` with appropriate parameters.
+     
+## TODO
+- [ ] implement checks for attribute constraints and integrity constraints
+- [ ] handle NULL values
+- [ ] code refactoring
