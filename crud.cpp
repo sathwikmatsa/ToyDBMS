@@ -166,6 +166,38 @@ table* get_table(string tableName){
     return Table;
 }
 
+table* copy_of_table(string tableName, deque<string> attrs_i){
+    table* Table = get_table(tableName); // original
+    table* newTable = new table();   
+    newTable->name = Table->name;
+    
+    deque<string> attrs = attrs_i;
+    int len = attrs.size();
+
+    if(len == 0){
+        attrList attrsL = Table->attributes;
+        int nAttrs = attrsL.size();
+        for(int i = 0; i < nAttrs; i++){
+            attrs.push_back(attrsL[i]->name);
+        }
+        len = nAttrs;
+    }
+
+    int recs_size = Table->records.size();
+    newTable->nAttrs = len;
+    newTable->records.resize(recs_size, {});
+    
+    for(int i = 0; i < len; i++){
+        string attr_name = attrs[i];
+        int attr_index = get_attr_index(attr_name, tableName);
+        newTable->attributes.push_back(Table->attributes[attr_index]);
+        for(int j = 0; j < recs_size; j++){
+            newTable->records[j].push_back(Table->records[j][attr_index]);
+        }
+    }
+    return newTable;
+}
+
 int get_attr_index(string attrName, string tableName){
     table* Table;
     for(size_t i = 0; i<Database.size(); i++){

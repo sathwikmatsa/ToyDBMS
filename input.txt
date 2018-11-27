@@ -6,4 +6,6 @@ insert into Person values(1, "Rick");
 insert into Person values(2, "Shelby");
 insert into Person values(3, "MrBulldops");
 
-delete from Person where ID < 3;
+delete from Person where ID = 3;
+
+select * from Person where ID < 4;

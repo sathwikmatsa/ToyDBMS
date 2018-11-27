@@ -96,6 +96,7 @@ SELECT : select_t '*' from id where CONDITION
             {
                 $$ = new ast_node();
                 $$->type = SELECT;
+                $$->op = 0;
                 $$->tableName = (*$4);
                 $$->childNodes.push_back($6);
                 add_to_cleanup(AST_NODE, (void**) &$$);
@@ -104,6 +105,7 @@ SELECT : select_t '*' from id where CONDITION
             {
                 $$ = new ast_node();
                 $$->type = SELECT;
+                $$->op = 1;
                 $$->tableName = (*$4);
                 $$->childNodes.push_back($2);
                 $$->childNodes.push_back($6);
@@ -113,16 +115,26 @@ SELECT : select_t '*' from id where CONDITION
             {
                 $$ = new ast_node();
                 $$->type = SELECT;
+                $$->op = 2;
                 $$->attrName = (*$4);
                 $$->tableName = (*$7);
-                $$->max_op = true;
                 $$->childNodes.push_back($9);
+                add_to_cleanup(AST_NODE, (void**) &$$);
+            }
+       | select_t max '(' id ')' from id 
+            {
+                $$ = new ast_node();
+                $$->type = SELECT;
+                $$->op = 3;
+                $$->attrName = (*$4);
+                $$->tableName = (*$7);
                 add_to_cleanup(AST_NODE, (void**) &$$);
             }
        | select_t '*' from id
             {
                 $$ = new ast_node();
                 $$->type = SELECT;
+                $$->op = 4;
                 $$->tableName = (*$4);
                 add_to_cleanup(AST_NODE, (void**) &$$);
             }
@@ -130,6 +142,7 @@ SELECT : select_t '*' from id where CONDITION
             {
                 $$ = new ast_node();
                 $$->type = SELECT;
+                $$->op = 5;
                 $$->tableName = (*$4);
                 $$->childNodes.push_back($2);
                 add_to_cleanup(AST_NODE, (void**) &$$);

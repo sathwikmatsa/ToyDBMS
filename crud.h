@@ -60,7 +60,6 @@ typedef struct ast_node{
     int op, op_val;
     map<string, string> rename;
     int cond_operand;
-    bool max_op;
 } ast_node;
 
 enum obj_type{TABLE, ATTR, AST_NODE, STRING};
@@ -86,6 +85,7 @@ void add_constraint(int attrID, string attrName, string tableName, void* data);
 void add_record(record r, string tableName);
 void add_primaryKeyField(string attrName, string tableName);
 table* get_table(string tableName);
+table* copy_of_table(string tableName, deque<string> attrs);
 int get_attr_index(string attrName, string tableName);
 void print_database();
 void print_table(table* Table);

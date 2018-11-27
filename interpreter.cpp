@@ -18,6 +18,8 @@ global_variable string attribute_n;
 global_variable record record_c;
 global_variable int record_index;
 
+table* processSelect(ast_node* sel);
+
 void processFKPKDef(ast_node* fkpkDef){
     // primary key
     if(fkpkDef->attrID == 7){
@@ -135,8 +137,34 @@ void processIQ(ast_node* ins){
     return;
 }
 
-void processSelect();
-void sanitize();
+deque<string> sanitize(table* Table, string attrName){
+    attrList attrs = Table->attributes;
+    int len = attrs.size();
+    int attr_index;
+    bool has_attr = false;
+
+    for(int i = 0; i < len; i++){
+        if(attrs[i]->name == attrName){
+            attr_index = i;
+            has_attr = true;
+            break;
+        }
+    }
+
+    if(!has_attr){
+        cout<<"ERROR: 13"<<endl;
+    }
+
+    deque<string> list_val;
+    int nRecords = Table->records.size();
+
+    for(int i = 0; i < nRecords; i++){
+        list_val.push_back(Table->records[i][attr_index]);
+    }
+
+    return list_val;
+}
+
 
 bool processCondition(ast_node* condition){
     if(condition->childNodes.size() == 1){
@@ -146,8 +174,9 @@ bool processCondition(ast_node* condition){
         //set attribute_n
         attribute_n = condition->attrName;
         deque<string> list_values;
-        if(condition->cond_operand == 1){
-            //values = sanitize(processSelect());
+        if(condition->childNodes[0]->cond_operand == 1){
+            table* table_c = processSelect(condition->childNodes[0]->childNodes[0]);
+            list_values = sanitize(table_c, condition->attrName);
         } else {
             list_values = condition->childNodes[0]->list_val;
         }
@@ -237,18 +266,14 @@ bool processCondition(ast_node* condition){
     return false; 
 }
 
-void processDQ(ast_node* query){
-    //set table_n
-    table_n = query->tableName;
-    table* Table = get_table(table_n);
-
+void processDelete(table* Table, ast_node* condition, bool del_if_true){
     int nRecords = Table->records.size();
 
     //iterate over and set record_c & record_index
     record_index = 0;
     while(record_index < nRecords){
         record_c = Table->records[record_index];
-        if(processCondition(query->childNodes[0])){
+        if(processCondition(condition) == del_if_true){
             Table->records.erase(Table->records.begin() + record_index);
             nRecords--;
             record_index--;
@@ -257,14 +282,67 @@ void processDQ(ast_node* query){
     }
 }
 
+void processDQ(ast_node* query){
+    //set table_n
+    table_n = query->tableName;
+    table* Table = get_table(table_n);
+    processDelete(Table, query->childNodes[0], true);
+}
+
+void processMAX(table* Table){
+    int nRecords = Table->records.size();
+    bool isString = Table->attributes[0]->isString;
+    assert(isString == false);
+    int MAX_i = stoi(Table->records[0][0]);
+    string MAX_s;
+    for(int i = 1; i < nRecords; i++){
+        if(MAX_i < stoi(Table->records[i][0])){
+            MAX_i = stoi(Table->records[i][0]);
+            MAX_s = Table->records[i][0];
+        }
+    }
+    
+    Table->records.clear();
+    Table->records.push_back({MAX_s});
+}
+
 table* processSelect(ast_node* sel){
-    //TODO
-    return NULL;
+    table* newTable = NULL;
+    switch(sel->op){
+        case 0: {
+            newTable = copy_of_table(sel->tableName, {});
+            processDelete(newTable, sel->childNodes[0], false);
+        }break;
+        case 1: {
+            newTable = copy_of_table(sel->tableName, sel->childNodes[0]->list_val);
+            processDelete(newTable, sel->childNodes[1], false);
+        }break;
+        case 2: {
+            deque<string> c_attr{sel->attrName};
+            newTable = copy_of_table(sel->tableName, c_attr);
+            processDelete(newTable, sel->childNodes[0], false);
+            processMAX(newTable);
+        }break;
+        case 3: {
+            deque<string> c_attr{sel->attrName};
+            newTable = copy_of_table(sel->tableName, c_attr);
+            processMAX(newTable);
+        }break;
+        case 4: {
+            newTable = copy_of_table(sel->tableName, {});
+        }break;
+        case 5: {
+            newTable = copy_of_table(sel->tableName, sel->childNodes[0]->list_val);
+        }break;
+        default: break;
+    }
+    return newTable;
 }
 
 void processSQ(ast_node* query){
     table* Table = processSelect(query);
     print_table(Table);
+    delete Table;
 }
 
 void processQuery(ast_node* query){
@@ -272,7 +350,7 @@ void processQuery(ast_node* query){
         case CREATE_TABLE: processCTQ(query); break;
         case INSERT: processIQ(query); break;
         case DELETE: processDQ(query); break;
-        //case SELECT: processSQ(query); break;
+        case SELECT: processSQ(query); break;
         default: break;
     }
 }
@@ -285,7 +363,6 @@ int main(int argc, char* argv[]){
     for(int i = 0; i < nQueries; i++){
         processQuery(root->childNodes[i]);
     }
-    print_database();
     garbageCollector();
     return 0;
 }
