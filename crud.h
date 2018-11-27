@@ -4,6 +4,7 @@
 #include <string>
 #include <deque>
 #include <map>
+#include <fstream>
 
 using namespace std;
 
@@ -74,6 +75,8 @@ extern vector <heapObject*> HeapObjects;
 extern database Database;
 extern ast_node* root;
 extern map<int, string> type_of;
+extern ofstream logfile;
+extern bool LOG;
 
 //*************** FUNCTIONS ****************
 

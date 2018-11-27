@@ -7,8 +7,11 @@ using namespace std;
 
 vector <heapObject*> HeapObjects;
 database Database;
+ofstream logfile;
+bool LOG;
 
 void garbageCollector(){
+    if(LOG) logfile<<"func: garbageCollector()  file: crud.cpp\n";
     int l = HeapObjects.size();
     for(int i = 0; i<l; i++){
         heapObject* obj = HeapObjects[i];
@@ -27,6 +30,7 @@ void garbageCollector(){
 }
 
 void add_to_cleanup(obj_type t, void** ptr){
+    if(LOG) logfile<<"func: add_to_cleanup()  file: crud.cpp\n";
     heapObject* newHeapObj = new heapObject();
     newHeapObj->t = t;
     newHeapObj->data = (*ptr);
@@ -34,6 +38,7 @@ void add_to_cleanup(obj_type t, void** ptr){
 
 
 bool create_table_in_database(string tableName){
+    if(LOG) logfile<<"func: create_table_in_database()  file: crud.cpp\n";
     //TODO: make sure to discard related operations if false
     // display error and return false if table name already exists!
     for(size_t i = 0; i<Database.size(); i++){
@@ -53,6 +58,7 @@ bool create_table_in_database(string tableName){
 }
 
 bool add_attribute(string attrName, bool isString, string tableName){
+    if(LOG) logfile<<"func: add_attribute()  file: crud.cpp\n";
     table* Table = NULL;
     for(size_t i = 0; i<Database.size(); i++){
         if(Database[i]->name == tableName){
@@ -79,6 +85,7 @@ bool add_attribute(string attrName, bool isString, string tableName){
 }
 
 void add_constraint(int attrID, string attrName, string tableName, void* data){
+    if(LOG) logfile<<"func: add_constraint()  file: crud.cpp\n";
     table* Table;
     for(size_t i = 0; i<Database.size(); i++){
         if(Database[i]->name == tableName){
@@ -111,6 +118,7 @@ void add_constraint(int attrID, string attrName, string tableName, void* data){
 }
 
 void add_record(record r, string tableName){
+    if(LOG) logfile<<"func: add_record()  file: crud.cpp\n";
     table* Table;
     bool tableExists = false;
     for(size_t i = 0; i<Database.size(); i++){
@@ -130,6 +138,7 @@ void add_record(record r, string tableName){
 }
 
 void add_primaryKeyField(string attrName, string tableName){
+    if(LOG) logfile<<"func: add_primaryKeyField()  file: crud.cpp\n";
     table* Table;
     for(size_t i = 0; i<Database.size(); i++){
         if(Database[i]->name == tableName){
@@ -156,6 +165,7 @@ void add_primaryKeyField(string attrName, string tableName){
 }
 
 table* get_table(string tableName){
+    if(LOG) logfile<<"func: get_table()  file: crud.cpp\n";
     table* Table = NULL;
     for(size_t i = 0; i<Database.size(); i++){
         if(Database[i]->name == tableName){
@@ -167,6 +177,7 @@ table* get_table(string tableName){
 }
 
 table* copy_of_table(string tableName, deque<string> attrs_i){
+    if(LOG) logfile<<"func: copy_of_table()  file: crud.cpp\n";
     table* Table = get_table(tableName); // original
     table* newTable = new table();   
     newTable->name = Table->name;
@@ -199,6 +210,7 @@ table* copy_of_table(string tableName, deque<string> attrs_i){
 }
 
 int get_attr_index(string attrName, string tableName){
+    if(LOG) logfile<<"func: get_attr_index()  file: crud.cpp\n";
     table* Table;
     for(size_t i = 0; i<Database.size(); i++){
         if(Database[i]->name == tableName){
@@ -224,6 +236,7 @@ int get_attr_index(string attrName, string tableName){
 }
 
 void print_database(){
+    if(LOG) logfile<<"func: print_database()  file: crud.cpp\n";
     cout<<"Database:"<<endl;
     for(size_t i = 0; i<Database.size(); i++){
         print_table(Database[i]);
@@ -231,12 +244,14 @@ void print_database(){
 }
 
 void print_table(table* Table){
+    if(LOG) logfile<<"func: print_table()  file: crud.cpp\n";
     cout<<Table->name<<endl;
     print_attributes(Table);
     print_records(Table);
 }
 
 void print_attributes(table* Table){
+    if(LOG) logfile<<"func: print_attributes()  file: crud.cpp\n";
     for(int i = 0; i<Table->nAttrs; i++){
         cout<<Table->attributes[i]->name<<" ";
     }
@@ -244,6 +259,7 @@ void print_attributes(table* Table){
 }
 
 void print_records(table* Table){
+    if(LOG) logfile<<"func: print_records()  file: crud.cpp\n";
     for(size_t i = 0; i<Table->records.size(); i++){
         for(int j = 0; j<Table->nAttrs; j++){
             cout<<Table->records[i][j]<<" ";

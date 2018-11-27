@@ -21,6 +21,7 @@ global_variable int record_index;
 table* processSelect(ast_node* sel);
 
 void processFKPKDef(ast_node* fkpkDef){
+    if(LOG) logfile<<"func: processFKPKDef()  file: interpreter.cpp\n";
     // primary key
     if(fkpkDef->attrID == 7){
         deque<string> pk_fields = fkpkDef->childNodes[0]->list_val;
@@ -56,6 +57,7 @@ void processFKPKDef(ast_node* fkpkDef){
 }
 
 void processAttrDef(ast_node* attrDef){
+    if(LOG) logfile<<"func: processAttrDef()  file: interpreter.cpp\n";
     // set attribute_n
     attribute_n = attrDef->attrName;
     // obtain data type of attribute
@@ -89,6 +91,7 @@ void processAttrDef(ast_node* attrDef){
 }
 
 void processCTQ(ast_node* query){
+    if(LOG) logfile<<"func: processCTQ()  file: interpreter.cpp\n";
     // set table_n
     table_n = query->tableName;
     if(!create_table_in_database(table_n)) return;
@@ -107,6 +110,7 @@ void processCTQ(ast_node* query){
 }
 
 void processIQ(ast_node* ins){
+    if(LOG) logfile<<"func: processIQ()  file: interpreter.cpp\n";
     //set table_n
     table_n = ins->tableName;
     table* Table = get_table(table_n);
@@ -138,6 +142,7 @@ void processIQ(ast_node* ins){
 }
 
 deque<string> sanitize(table* Table, string attrName){
+    if(LOG) logfile<<"func: sanitize()  file: interpreter.cpp\n";
     attrList attrs = Table->attributes;
     int len = attrs.size();
     int attr_index;
@@ -167,6 +172,7 @@ deque<string> sanitize(table* Table, string attrName){
 
 
 bool processCondition(ast_node* condition){
+    if(LOG) logfile<<"func: processCondition()  file: interpreter.cpp\n";
     if(condition->childNodes.size() == 1){
         int attr_index = get_attr_index(condition->attrName, table_n);
         assert(attr_index >= 0);
@@ -267,6 +273,7 @@ bool processCondition(ast_node* condition){
 }
 
 void processDelete(table* Table, ast_node* condition, bool del_if_true){
+    if(LOG) logfile<<"func: processDelete()  file: interpreter.cpp\n";
     int nRecords = Table->records.size();
 
     //iterate over and set record_c & record_index
@@ -283,6 +290,7 @@ void processDelete(table* Table, ast_node* condition, bool del_if_true){
 }
 
 void processDQ(ast_node* query){
+    if(LOG) logfile<<"func: processDQ()  file: interpreter.cpp\n";
     //set table_n
     table_n = query->tableName;
     table* Table = get_table(table_n);
@@ -290,6 +298,7 @@ void processDQ(ast_node* query){
 }
 
 void processMAX(table* Table){
+    if(LOG) logfile<<"func: processMAX()  file: interpreter.cpp\n";
     int nRecords = Table->records.size();
     bool isString = Table->attributes[0]->isString;
     assert(isString == false);
@@ -307,6 +316,7 @@ void processMAX(table* Table){
 }
 
 table* processSelect(ast_node* sel){
+    if(LOG) logfile<<"func: processSelect()  file: interpreter.cpp\n";
     table* newTable = NULL;
     switch(sel->op){
         case 0: {
@@ -340,12 +350,14 @@ table* processSelect(ast_node* sel){
 }
 
 void processSQ(ast_node* query){
+    if(LOG) logfile<<"func: processSQ()  file: interpreter.cpp\n";
     table* Table = processSelect(query);
     print_table(Table);
     delete Table;
 }
 
 void processQuery(ast_node* query){
+    if(LOG) logfile<<"func: processQuery()  file: interpreter.cpp\n";
     switch(query->type){
         case CREATE_TABLE: processCTQ(query); break;
         case INSERT: processIQ(query); break;
@@ -359,10 +371,14 @@ int main(int argc, char* argv[]){
     if(argc == 2) yyin = fopen(argv[1],"r"); 
     yyparse();
     assert(root->type == QUERIES && "Root element type isn't QUERIES!\n");
+    LOG = true;
+    logfile.open("log.txt");
+    if(LOG) logfile<<"func: main()  file: interpreter.cpp\n";
     int nQueries = root->childNodes.size();
     for(int i = 0; i < nQueries; i++){
         processQuery(root->childNodes[i]);
     }
     garbageCollector();
+    logfile.close();
     return 0;
 }
