@@ -57,21 +57,8 @@ bool create_table_in_database(string tableName){
     return true;
 }
 
-bool add_attribute(string attrName, bool isString, string tableName){
+bool add_attribute(string attrName, bool isString, table* Table){
     if(LOG) logfile<<"func: add_attribute()  file: crud.cpp\n";
-    table* Table = NULL;
-    for(size_t i = 0; i<Database.size(); i++){
-        if(Database[i]->name == tableName){
-            Table = Database[i];
-            break;
-        }
-    }
-
-    if(Table == NULL) {
-        cout<<"Error: Table-"<<tableName<<" not found!"<<endl;
-        return false;
-    }
-
     attr* newAttr = new attr();
     newAttr->name = attrName;
     newAttr->isString = isString;
@@ -84,16 +71,8 @@ bool add_attribute(string attrName, bool isString, string tableName){
     return true;
 }
 
-void add_constraint(int attrID, string attrName, string tableName, void* data){
+void add_constraint(int attrID, string attrName, table* Table, void* data){
     if(LOG) logfile<<"func: add_constraint()  file: crud.cpp\n";
-    table* Table;
-    for(size_t i = 0; i<Database.size(); i++){
-        if(Database[i]->name == tableName){
-            Table = Database[i];
-            break;
-        }
-    }
-
     attr* Attr;
     for(int i = 0; i<Table->nAttrs; i++){
         if(Table->attributes[i]->name == attrName){
@@ -137,16 +116,8 @@ void add_record(record r, string tableName){
     Table->records.push_back(r);
 }
 
-void add_primaryKeyField(string attrName, string tableName){
+void add_primaryKeyField(string attrName, table* Table){
     if(LOG) logfile<<"func: add_primaryKeyField()  file: crud.cpp\n";
-    table* Table;
-    for(size_t i = 0; i<Database.size(); i++){
-        if(Database[i]->name == tableName){
-            Table = Database[i];
-            break;
-        }
-    }
-
     bool attrExists = false;
     for(int i = 0; i<Table->nAttrs; i++){
         if(Table->attributes[i]->name == attrName){
@@ -164,8 +135,8 @@ void add_primaryKeyField(string attrName, string tableName){
 
 }
 
-table* get_table(string tableName){
-    if(LOG) logfile<<"func: get_table()  file: crud.cpp\n";
+table* get_table_from_database(string tableName){
+    if(LOG) logfile<<"func: get_table_from_database()  file: crud.cpp\n";
     table* Table = NULL;
     for(size_t i = 0; i<Database.size(); i++){
         if(Database[i]->name == tableName){
@@ -176,9 +147,8 @@ table* get_table(string tableName){
     return Table;
 }
 
-table* copy_of_table(string tableName, deque<string> attrs_i){
+table* copy_of_table(table* Table, deque<string> attrs_i){
     if(LOG) logfile<<"func: copy_of_table()  file: crud.cpp\n";
-    table* Table = get_table(tableName); // original
     table* newTable = new table();   
     newTable->name = Table->name;
     
@@ -200,7 +170,7 @@ table* copy_of_table(string tableName, deque<string> attrs_i){
     
     for(int i = 0; i < len; i++){
         string attr_name = attrs[i];
-        int attr_index = get_attr_index(attr_name, tableName);
+        int attr_index = get_attr_index(attr_name, Table);
         newTable->attributes.push_back(Table->attributes[attr_index]);
         for(int j = 0; j < recs_size; j++){
             newTable->records[j].push_back(Table->records[j][attr_index]);
@@ -209,16 +179,8 @@ table* copy_of_table(string tableName, deque<string> attrs_i){
     return newTable;
 }
 
-int get_attr_index(string attrName, string tableName){
+int get_attr_index(string attrName, table* Table){
     if(LOG) logfile<<"func: get_attr_index()  file: crud.cpp\n";
-    table* Table;
-    for(size_t i = 0; i<Database.size(); i++){
-        if(Database[i]->name == tableName){
-            Table = Database[i];
-            break;
-        }
-    }
-
     bool attrExists = false;
     int index = 0;
     for(int i = 0; i<Table->nAttrs; i++){

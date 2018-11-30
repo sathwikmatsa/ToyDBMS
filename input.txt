@@ -1,11 +1,13 @@
 CREATE TABLE Person(ID INT NOT NULL,
                     Name VARCHAR(255),
-                    PRIMARY KEY(ID));
+                    Salary INT,
+                    PRIMARY KEY(ID)
+              );
 
-insert into Person values(1, "Rick");
-insert into Person values(2, "Shelby");
-insert into Person values(3, "MrBulldops");
+insert into Person values(1, "Rick", 123);
+insert into Person values(2, "Shelby",100);
+insert into Person values(3, "MrBulldops",200);
 
-delete from Person where ID = 3;
+select ID, Salary from Person where Salary > 125;
 
-select * from Person where ID < 4;
+select * from Person;

@@ -8,19 +8,13 @@
 extern int yyparse();
 extern FILE* yyin;
 
-#define global_variable static
 using namespace std;
 
 ast_node* root = NULL;
 
-global_variable string table_n;         //file scoped
-global_variable string attribute_n;
-global_variable record record_c;
-global_variable int record_index;
-
 table* processSelect(ast_node* sel);
 
-void processFKPKDef(ast_node* fkpkDef){
+void processFKPKDef(ast_node* fkpkDef, table* Table){
     if(LOG) logfile<<"func: processFKPKDef()  file: interpreter.cpp\n";
     // primary key
     if(fkpkDef->attrID == 7){
@@ -28,15 +22,15 @@ void processFKPKDef(ast_node* fkpkDef){
 
         int nFields = pk_fields.size();
         for(int i = 0; i < nFields; i++){
-            add_primaryKeyField(pk_fields[i], table_n);
-            add_constraint(7 , pk_fields[i], table_n, NULL);
+            add_primaryKeyField(pk_fields[i], Table);
+            add_constraint(7 , pk_fields[i], Table, NULL);
         }
     // foreign key
     } else if(fkpkDef->attrID == 10){
-        add_constraint(8, fkpkDef->attrName, table_n, NULL);
-        add_constraint(0, fkpkDef->attrName, table_n,
+        add_constraint(8, fkpkDef->attrName, Table, NULL);
+        add_constraint(0, fkpkDef->attrName, Table,
                 (void*) &fkpkDef->list_val[0]);
-        add_constraint(1, fkpkDef->attrName, table_n,
+        add_constraint(1, fkpkDef->attrName, Table,
                 (void*) &fkpkDef->list_val[1]);
 
         if(fkpkDef->childNodes[0] == NULL) return;
@@ -47,24 +41,22 @@ void processFKPKDef(ast_node* fkpkDef){
 
         for(int i = 0; i < nFKConstraints; i++){
             if(fk_constraints[i]->op == 2){
-                add_constraint(2, fkpkDef->attrName, table_n,
+                add_constraint(2, fkpkDef->attrName, Table,
                         (void*) &fk_constraints[i]->op_val);
             } else if(fk_constraints[i]->op == 3){
-                add_constraint(3, fkpkDef->attrName, table_n, NULL);
+                add_constraint(3, fkpkDef->attrName, Table, NULL);
             }
         }
     }   
 }
 
-void processAttrDef(ast_node* attrDef){
+void processAttrDef(ast_node* attrDef, table* Table){
     if(LOG) logfile<<"func: processAttrDef()  file: interpreter.cpp\n";
-    // set attribute_n
-    attribute_n = attrDef->attrName;
     // obtain data type of attribute
     bool isString = attrDef->childNodes[0]->isString;
 
     // create attribute
-    add_attribute(attribute_n, isString, table_n);
+    add_attribute(attrDef->attrName, isString, Table);
 
     if(attrDef->childNodes.size() == 1) return;
 
@@ -77,11 +69,11 @@ void processAttrDef(ast_node* attrDef){
                 && "Invalid Constraint!\n");
         
         if(constraints[i]->attrID == 6){
-            add_constraint(6, attribute_n, table_n, NULL);
+            add_constraint(6, attrDef->attrName, Table, NULL);
         } else if(constraints[i]->attrID == 4){
-            add_constraint(4, attribute_n, table_n,
+            add_constraint(4, attrDef->attrName, Table,
                     NULL);
-            add_constraint(5, attribute_n, table_n,
+            add_constraint(5, attrDef->attrName, Table,
                     (void*) &constraints[i]->literal_v);
         } else{
             assert(1 == 0 && "Invalid attrID!\n");
@@ -92,18 +84,17 @@ void processAttrDef(ast_node* attrDef){
 
 void processCTQ(ast_node* query){
     if(LOG) logfile<<"func: processCTQ()  file: interpreter.cpp\n";
-    // set table_n
-    table_n = query->tableName;
-    if(!create_table_in_database(table_n)) return;
-    
+    table* Table;
+    if(!create_table_in_database(query->tableName)) return;
+    Table = get_table_from_database(query->tableName);
     // process attributes
     deque<ast_node*> arguments = query->childNodes[0]->childNodes;
     int nArgs = arguments.size();
     
     for(int i = 0; i < nArgs; i++){
         switch(arguments[i]->type){
-            case ATTR_DEF : processAttrDef(arguments[i]); break;
-            case FK_PK_DEF: processFKPKDef(arguments[i]); break;
+            case ATTR_DEF : processAttrDef(arguments[i], Table); break;
+            case FK_PK_DEF: processFKPKDef(arguments[i], Table); break;
             default: break;
         }
     }
@@ -111,9 +102,7 @@ void processCTQ(ast_node* query){
 
 void processIQ(ast_node* ins){
     if(LOG) logfile<<"func: processIQ()  file: interpreter.cpp\n";
-    //set table_n
-    table_n = ins->tableName;
-    table* Table = get_table(table_n);
+    table* Table = get_table_from_database(ins->tableName);
     if(ins->childNodes.size() == 1){
         record newRecord(ins->childNodes[0]->list_val.begin(), 
                 ins->childNodes[0]->list_val.end());
@@ -131,7 +120,7 @@ void processIQ(ast_node* ins){
         int len = attr_ids.size();
 
         for(int i = 0; i < len; i++){
-            int index_t = get_attr_index(attr_ids[i], table_n);
+            int index_t = get_attr_index(attr_ids[i], Table);
             if(index_t < 0) return;
             newRecord[index_t] = literals[i];
         }
@@ -171,14 +160,12 @@ deque<string> sanitize(table* Table, string attrName){
 }
 
 
-bool processCondition(ast_node* condition){
+bool processCondition(ast_node* condition, record* Record, table* Table){
     if(LOG) logfile<<"func: processCondition()  file: interpreter.cpp\n";
     if(condition->childNodes.size() == 1){
-        int attr_index = get_attr_index(condition->attrName, table_n);
+        int attr_index = get_attr_index(condition->attrName, Table);
         assert(attr_index >= 0);
-        bool isString = get_table(table_n)->attributes[attr_index]->isString;
-        //set attribute_n
-        attribute_n = condition->attrName;
+        bool isString = Table->attributes[attr_index]->isString;
         deque<string> list_values;
         if(condition->childNodes[0]->cond_operand == 1){
             table* table_c = processSelect(condition->childNodes[0]->childNodes[0]);
@@ -192,10 +179,10 @@ bool processCondition(ast_node* condition){
             case 3: {
                 for(int i = 0; i < len; i++){
                     if(isString){
-                        if((record_c[attr_index]) == (list_values[i])) 
+                        if(((*Record)[attr_index]) == (list_values[i])) 
                             return true; 
                     } else {
-                        if(stoi(record_c[attr_index]) == stoi(list_values[i]))
+                        if(stoi((*Record)[attr_index]) == stoi(list_values[i]))
                             return true;
                     }
                 }
@@ -203,10 +190,10 @@ bool processCondition(ast_node* condition){
             case 4: {
                 for(int i = 0; i < len; i++){
                     if(isString){
-                        if((record_c[attr_index]) != (list_values[i])) 
+                        if(((*Record)[attr_index]) != (list_values[i])) 
                             return true; 
                     } else {
-                        if(stoi(record_c[attr_index]) != stoi(list_values[i]))
+                        if(stoi((*Record)[attr_index]) != stoi(list_values[i]))
                             return true;
                     }
                 }
@@ -214,10 +201,10 @@ bool processCondition(ast_node* condition){
             case 5: {
                 for(int i = 0; i < len; i++){
                     if(isString){
-                        if((record_c[attr_index]) >= (list_values[i])) 
+                        if(((*Record)[attr_index]) >= (list_values[i])) 
                             return false;
                     } else {
-                        if(stoi(record_c[attr_index]) >= stoi(list_values[i]))
+                        if(stoi((*Record)[attr_index]) >= stoi(list_values[i]))
                             return false;
                     }
                 }
@@ -226,10 +213,10 @@ bool processCondition(ast_node* condition){
             case 6: {
                 for(int i = 0; i < len; i++){
                     if(isString){
-                        if((record_c[attr_index]) <= (list_values[i])) 
+                        if(((*Record)[attr_index]) <= (list_values[i])) 
                             return false;
                     } else {
-                        if(stoi(record_c[attr_index]) <= stoi(list_values[i]))
+                        if(stoi((*Record)[attr_index]) <= stoi(list_values[i]))
                             return false;
                     }
                 }
@@ -238,10 +225,10 @@ bool processCondition(ast_node* condition){
             case 7: {
                 for(int i = 0; i < len; i++){
                     if(isString){
-                        if((record_c[attr_index]) > (list_values[i])) 
+                        if(((*Record)[attr_index]) > (list_values[i])) 
                             return false;
                     } else {
-                        if(stoi(record_c[attr_index]) > stoi(list_values[i]))
+                        if(stoi((*Record)[attr_index]) > stoi(list_values[i]))
                             return false;
                     }
                 }
@@ -250,10 +237,10 @@ bool processCondition(ast_node* condition){
             case 8: {
                 for(int i = 0; i < len; i++){
                     if(isString){
-                        if((record_c[attr_index]) < (list_values[i])) 
+                        if(((*Record)[attr_index]) < (list_values[i])) 
                             return false;
                     } else {
-                        if(stoi(record_c[attr_index]) < stoi(list_values[i]))
+                        if(stoi((*Record)[attr_index]) < stoi(list_values[i]))
                             return false;
                     }
                 }
@@ -263,11 +250,11 @@ bool processCondition(ast_node* condition){
         }
     } else {
         if(condition->op == 0) 
-            return processCondition(condition->childNodes[0]) 
-                && processCondition(condition->childNodes[1]);
+            return processCondition(condition->childNodes[0], Record, Table) 
+                && processCondition(condition->childNodes[1], Record, Table);
         else
-            return processCondition(condition->childNodes[0]) 
-                || processCondition(condition->childNodes[1]);
+            return processCondition(condition->childNodes[0], Record, Table) 
+                || processCondition(condition->childNodes[1], Record, Table);
     }
     return false; 
 }
@@ -276,11 +263,10 @@ void processDelete(table* Table, ast_node* condition, bool del_if_true){
     if(LOG) logfile<<"func: processDelete()  file: interpreter.cpp\n";
     int nRecords = Table->records.size();
 
-    //iterate over and set record_c & record_index
-    record_index = 0;
+    int record_index = 0;
     while(record_index < nRecords){
-        record_c = Table->records[record_index];
-        if(processCondition(condition) == del_if_true){
+        record Record = Table->records[record_index];
+        if(processCondition(condition, &Record, Table) == del_if_true){
             Table->records.erase(Table->records.begin() + record_index);
             nRecords--;
             record_index--;
@@ -291,9 +277,7 @@ void processDelete(table* Table, ast_node* condition, bool del_if_true){
 
 void processDQ(ast_node* query){
     if(LOG) logfile<<"func: processDQ()  file: interpreter.cpp\n";
-    //set table_n
-    table_n = query->tableName;
-    table* Table = get_table(table_n);
+    table* Table = get_table_from_database(query->tableName);
     processDelete(Table, query->childNodes[0], true);
 }
 
@@ -318,34 +302,36 @@ void processMAX(table* Table){
 table* processSelect(ast_node* sel){
     if(LOG) logfile<<"func: processSelect()  file: interpreter.cpp\n";
     table* newTable = NULL;
+    table* oldTable = get_table_from_database(sel->tableName);
     switch(sel->op){
         case 0: {
-            newTable = copy_of_table(sel->tableName, {});
+            newTable = copy_of_table(oldTable, {});
             processDelete(newTable, sel->childNodes[0], false);
         }break;
         case 1: {
-            newTable = copy_of_table(sel->tableName, sel->childNodes[0]->list_val);
+            newTable = copy_of_table(oldTable, sel->childNodes[0]->list_val);
             processDelete(newTable, sel->childNodes[1], false);
         }break;
         case 2: {
             deque<string> c_attr{sel->attrName};
-            newTable = copy_of_table(sel->tableName, c_attr);
+            newTable = copy_of_table(oldTable, c_attr);
             processDelete(newTable, sel->childNodes[0], false);
             processMAX(newTable);
         }break;
         case 3: {
             deque<string> c_attr{sel->attrName};
-            newTable = copy_of_table(sel->tableName, c_attr);
+            newTable = copy_of_table(oldTable, c_attr);
             processMAX(newTable);
         }break;
         case 4: {
-            newTable = copy_of_table(sel->tableName, {});
+            newTable = copy_of_table(oldTable, {});
         }break;
         case 5: {
-            newTable = copy_of_table(sel->tableName, sel->childNodes[0]->list_val);
+            newTable = copy_of_table(oldTable, sel->childNodes[0]->list_val);
         }break;
         default: break;
     }
+    add_to_cleanup(TABLE, (void**) newTable);
     return newTable;
 }
 
@@ -353,7 +339,6 @@ void processSQ(ast_node* query){
     if(LOG) logfile<<"func: processSQ()  file: interpreter.cpp\n";
     table* Table = processSelect(query);
     print_table(Table);
-    delete Table;
 }
 
 void processQuery(ast_node* query){
@@ -369,7 +354,7 @@ void processQuery(ast_node* query){
 
 int main(int argc, char* argv[]){
     if(argc == 2) yyin = fopen(argv[1],"r"); 
-    yyparse();
+    if(yyparse() == 1) return 1;
     assert(root->type == QUERIES && "Root element type isn't QUERIES!\n");
     LOG = true;
     logfile.open("log.txt");
