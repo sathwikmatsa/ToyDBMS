@@ -4,10 +4,14 @@ CREATE TABLE Person(ID INT NOT NULL,
                     PRIMARY KEY(ID)
               );
 
-insert into Person values(1, "Rick", 123);
-insert into Person values(2, "Shelby",100);
-insert into Person values(3, "MrBulldops",200);
+insert into Person values(1, "Rick Sanchez", 123);
+insert into Person values(2, "Thomas Shelby",100);
+insert into Person values(3, "Sherlock",200);
+insert into Person values(4, "Elliot Alderson", 300);
+insert into Person(Name, ID, Salary) values("Richard Hendricks", 5, 600);
 
-select ID, Salary from Person where Salary > 125;
+delete from Person where Salary > 150 and Salary < 500 and Name != "Sherlock";
 
-select * from Person;
+select Name, ID from Person where ID in (1,2,3,4,5);
+
+select Name, ID from Person where ID = (select MAX(ID) from Person);
